@@ -1,34 +1,39 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import numpy as np
 from sklearn.cluster import KMeans
 from sklearn.linear_model import LinearRegression
-import numpy as np
 
-st.set_page_config(page_title="LegalTech Growth Intelligence Dashboard", layout="wide")
+st.set_page_config(page_title="LegalTech Growth Dashboard", layout="wide")
 
 st.title("LegalTech Growth Intelligence Dashboard")
 
-# -----------------------------
-# LOAD DATA
-# -----------------------------
+# -------------------------------------------------
+# DATA LOADING (cached)
+# -------------------------------------------------
 
-users = pd.read_csv("users.csv")
-questions = pd.read_csv("questions.csv")
-consultations = pd.read_csv("consultations.csv")
-lawyers = pd.read_csv("lawyers.csv")
-sessions = pd.read_csv("sessions.csv")
-reviews = pd.read_csv("reviews.csv")
-marketing = pd.read_csv("marketing_spend.csv")
+@st.cache_data
+def load_data():
+    users = pd.read_csv("users.csv")
+    questions = pd.read_csv("questions.csv")
+    consultations = pd.read_csv("consultations.csv")
+    lawyers = pd.read_csv("lawyers.csv")
+    sessions = pd.read_csv("sessions.csv")
+    reviews = pd.read_csv("reviews.csv")
+    marketing = pd.read_csv("marketing_spend.csv")
+    return users, questions, consultations, lawyers, sessions, reviews, marketing
+
+users, questions, consultations, lawyers, sessions, reviews, marketing = load_data()
 
 paid_consults = consultations[consultations["paid"] == 1]
 
-# -----------------------------
-# SIDEBAR NAVIGATION
-# -----------------------------
+# -------------------------------------------------
+# SIDEBAR
+# -------------------------------------------------
 
 view = st.sidebar.radio(
-    "Analytics View",
+    "Analytics Layer",
     [
         "Descriptive Analytics",
         "Diagnostic Analytics",
@@ -37,28 +42,31 @@ view = st.sidebar.radio(
     ]
 )
 
-# =========================================================
+# =================================================
 # DESCRIPTIVE ANALYTICS
-# =========================================================
+# =================================================
 
 if view == "Descriptive Analytics":
 
-    st.header("Descriptive Analytics — Platform Performance")
+    st.header("Platform KPI Overview")
 
     total_visitors = len(users)
-    new_users = users["signup_date"].count()
     legal_questions = len(questions)
     revenue = paid_consults["consultation_price"].sum()
     avg_price = paid_consults["consultation_price"].mean()
     active_lawyers = lawyers["lawyer_id"].nunique()
 
-    col1, col2, col3, col4, col5 = st.columns(5)
+    repeat_users = consultations["user_id"].value_counts()
+    repeat_rate = (repeat_users > 1).sum() / len(repeat_users)
+
+    col1, col2, col3, col4, col5, col6 = st.columns(6)
 
     col1.metric("Total Visitors", total_visitors)
-    col2.metric("New Users", new_users)
-    col3.metric("Legal Questions", legal_questions)
-    col4.metric("Revenue", f"${revenue:,.0f}")
+    col2.metric("Legal Questions", legal_questions)
+    col3.metric("Revenue", f"${revenue:,.0f}")
+    col4.metric("Avg Consultation Price", f"${avg_price:,.0f}")
     col5.metric("Active Lawyers", active_lawyers)
+    col6.metric("Repeat Consultation Rate", f"{repeat_rate:.2%}")
 
     st.markdown("---")
 
@@ -66,36 +74,32 @@ if view == "Descriptive Analytics":
     traffic = users["traffic_source"].value_counts().reset_index()
     traffic.columns = ["source", "users"]
 
-    chart = alt.Chart(traffic).mark_bar().encode(
+    traffic_chart = alt.Chart(traffic).mark_bar().encode(
         x="source:N",
         y="users:Q",
         tooltip=["source", "users"]
-    ).properties(title="User Acquisition by Traffic Source")
+    ).properties(title="Traffic Source")
 
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(traffic_chart, use_container_width=True)
 
     # Revenue by category
-    revenue_category = (
-        paid_consults.groupby("category")["consultation_price"]
-        .sum()
-        .reset_index()
-    )
+    revenue_cat = paid_consults.groupby("category")["consultation_price"].sum().reset_index()
 
-    chart2 = alt.Chart(revenue_category).mark_bar().encode(
+    rev_chart = alt.Chart(revenue_cat).mark_bar().encode(
         x="category:N",
         y="consultation_price:Q",
-        tooltip=["category", "consultation_price"]
+        tooltip=["category","consultation_price"]
     ).properties(title="Revenue by Legal Category")
 
-    st.altair_chart(chart2, use_container_width=True)
+    st.altair_chart(rev_chart, use_container_width=True)
 
-# =========================================================
+# =================================================
 # DIAGNOSTIC ANALYTICS
-# =========================================================
+# =================================================
 
 elif view == "Diagnostic Analytics":
 
-    st.header("Diagnostic Analytics — Conversion Funnel")
+    st.header("Conversion Funnel Analysis")
 
     visitors = len(users)
     questions_count = len(questions)
@@ -103,115 +107,131 @@ elif view == "Diagnostic Analytics":
     paid_count = len(paid_consults)
 
     funnel = pd.DataFrame({
-        "stage": ["Visitors", "Questions", "Consultations", "Paid Consultations"],
-        "users": [visitors, questions_count, consultations_count, paid_count]
+        "stage": ["Visitors","Questions","Consultations","Paid"],
+        "users":[visitors,questions_count,consultations_count,paid_count]
     })
 
     funnel_chart = alt.Chart(funnel).mark_bar().encode(
-        x="stage",
-        y="users",
-        tooltip=["stage", "users"]
-    ).properties(title="Conversion Funnel")
+        x="stage:N",
+        y="users:Q",
+        tooltip=["stage","users"]
+    ).properties(title="User Conversion Funnel")
 
-    st.altair_chart(funnel_chart, use_container_width=True)
-
-    st.markdown("---")
-
-    # Session duration impact
-    chart = alt.Chart(sessions).mark_circle(size=60).encode(
-        x="session_duration_sec",
-        y="pages_viewed",
-        tooltip=["session_duration_sec", "pages_viewed"]
-    ).properties(title="User Engagement Behavior")
-
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(funnel_chart,use_container_width=True)
 
     st.markdown("---")
 
-    # Lawyer rating distribution
+    st.subheader("User Engagement")
+
+    session_chart = alt.Chart(sessions).mark_circle(size=80).encode(
+        x="session_duration_sec:Q",
+        y="pages_viewed:Q",
+        tooltip=["session_duration_sec","pages_viewed"]
+    )
+
+    st.altair_chart(session_chart,use_container_width=True)
+
+    st.markdown("---")
+
+    st.subheader("Lawyer Rating Distribution")
+
     rating_chart = alt.Chart(reviews).mark_bar().encode(
-        alt.X("rating", bin=True),
+        alt.X("rating:Q", bin=True),
         y="count()"
-    ).properties(title="Lawyer Rating Distribution")
+    )
 
-    st.altair_chart(rating_chart, use_container_width=True)
+    st.altair_chart(rating_chart,use_container_width=True)
 
-# =========================================================
+# =================================================
 # PREDICTIVE ANALYTICS
-# =========================================================
+# =================================================
 
 elif view == "Predictive Analytics":
 
-    st.header("Predictive Analytics")
-
-    st.subheader("Revenue Forecast")
+    st.header("Predictive Models")
 
     consultations["date"] = pd.to_datetime(consultations["consultation_date"])
 
     revenue_time = consultations.groupby("date")["consultation_price"].sum().reset_index()
 
-    revenue_time["day"] = np.arange(len(revenue_time))
+    revenue_time["day_index"] = np.arange(len(revenue_time))
 
-    X = revenue_time[["day"]]
+    X = revenue_time[["day_index"]]
     y = revenue_time["consultation_price"]
 
     model = LinearRegression()
-    model.fit(X, y)
+    model.fit(X,y)
 
-    revenue_time["prediction"] = model.predict(X)
+    revenue_time["forecast"] = model.predict(X)
 
-    chart = alt.Chart(revenue_time).mark_line().encode(
+    actual = alt.Chart(revenue_time).mark_line().encode(
         x="date:T",
         y="consultation_price:Q"
     )
 
-    pred = alt.Chart(revenue_time).mark_line(color="red").encode(
+    forecast = alt.Chart(revenue_time).mark_line(color="red").encode(
         x="date:T",
-        y="prediction:Q"
+        y="forecast:Q"
     )
 
-    st.altair_chart(chart + pred, use_container_width=True)
+    st.subheader("Revenue Forecast")
+
+    st.altair_chart(actual + forecast,use_container_width=True)
 
     st.markdown("---")
 
-    st.subheader("Customer Segmentation")
+    st.subheader("Customer Segmentation (CLV vs Frequency)")
 
-    seg_data = consultations.groupby("user_id").agg({
-        "consultation_price": "sum",
-        "consultation_id": "count"
+    seg = consultations.groupby("user_id").agg({
+        "consultation_price":"sum",
+        "consultation_id":"count"
     }).reset_index()
 
-    kmeans = KMeans(n_clusters=3)
-    seg_data["segment"] = kmeans.fit_predict(seg_data[["consultation_price", "consultation_id"]])
+    kmeans = KMeans(n_clusters=3,n_init=10)
+    seg["segment"] = kmeans.fit_predict(seg[["consultation_price","consultation_id"]])
 
-    chart = alt.Chart(seg_data).mark_circle(size=60).encode(
+    seg_chart = alt.Chart(seg).mark_circle(size=80).encode(
         x="consultation_price",
         y="consultation_id",
         color="segment:N",
         tooltip=["user_id"]
-    ).properties(title="Customer Segmentation (CLV vs Frequency)")
+    )
 
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(seg_chart,use_container_width=True)
 
-# =========================================================
+# =================================================
 # PRESCRIPTIVE ANALYTICS
-# =========================================================
+# =================================================
 
 elif view == "Prescriptive Analytics":
 
-    st.header("Prescriptive Analytics")
+    st.header("Optimization & Recommendations")
 
-    st.subheader("Marketing ROI")
+    st.subheader("Cost Per Acquisition")
 
-    marketing["CPA"] = marketing["spend"] / marketing["users_acquired"]
+    spend_col = None
+    users_col = None
 
-    chart = alt.Chart(marketing).mark_bar().encode(
-        x="channel",
-        y="CPA",
-        tooltip=["channel", "CPA"]
-    ).properties(title="Cost per Acquisition by Channel")
+    for col in marketing.columns:
+        if "spend" in col.lower():
+            spend_col = col
+        if "user" in col.lower():
+            users_col = col
 
-    st.altair_chart(chart, use_container_width=True)
+    if spend_col and users_col:
+
+        marketing["CPA"] = marketing[spend_col] / marketing[users_col]
+
+        cpa_chart = alt.Chart(marketing).mark_bar().encode(
+            x="channel:N",
+            y="CPA:Q",
+            tooltip=["channel","CPA"]
+        )
+
+        st.altair_chart(cpa_chart,use_container_width=True)
+
+    else:
+        st.warning("Marketing dataset columns not detected.")
 
     st.markdown("---")
 
@@ -219,15 +239,15 @@ elif view == "Prescriptive Analytics":
 
     util = consultations.groupby("lawyer_id").size().reset_index(name="consultations")
 
-    chart = alt.Chart(util).mark_bar().encode(
+    util_chart = alt.Chart(util).mark_bar().encode(
         x="lawyer_id:N",
         y="consultations:Q"
-    ).properties(title="Lawyer Utilization Rate")
+    )
 
-    st.altair_chart(chart, use_container_width=True)
+    st.altair_chart(util_chart,use_container_width=True)
 
     st.markdown("---")
 
     st.success(
-        "Recommendation: Increase SEO investment and improve response time to increase consultation conversion."
+        "Recommended Strategy: Improve lawyer response time and increase SEO traffic to improve consultation conversion."
     )
