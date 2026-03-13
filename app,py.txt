@@ -1,0 +1,52 @@
+import streamlit as st
+import pandas as pd
+import altair as alt
+
+st.set_page_config(page_title="LegalTech Growth Dashboard", layout="wide")
+
+st.title("LegalTech Growth Intelligence Dashboard")
+
+# Load data
+users = pd.read_csv("data/users.csv")
+questions = pd.read_csv("data/questions.csv")
+consultations = pd.read_csv("data/consultations.csv")
+
+paid_consults = consultations[consultations["paid"] == 1]
+
+# KPIs
+total_users = len(users)
+total_questions = len(questions)
+paid_consultations = len(paid_consults)
+revenue = paid_consults["consultation_price"].sum()
+
+col1, col2, col3, col4 = st.columns(4)
+
+col1.metric("Total Users", total_users)
+col2.metric("Questions Submitted", total_questions)
+col3.metric("Paid Consultations", paid_consultations)
+col4.metric("Revenue", f"${revenue:,.0f}")
+
+st.markdown("---")
+
+# Revenue by category chart
+if not paid_consults.empty:
+
+    revenue_category = (
+        paid_consults.groupby("category")["consultation_price"]
+        .sum()
+        .reset_index()
+    )
+
+    chart = alt.Chart(revenue_category).mark_bar().encode(
+        x="category:N",
+        y="consultation_price:Q",
+        tooltip=["category", "consultation_price"]
+    ).properties(
+        title="Revenue by Legal Category"
+    )
+
+    st.altair_chart(chart, use_container_width=True)
+
+st.markdown("---")
+
+st.write("Use the sidebar to navigate between dashboard pages.")
