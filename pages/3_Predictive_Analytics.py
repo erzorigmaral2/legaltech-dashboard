@@ -7,146 +7,154 @@ from sklearn.ensemble import RandomForestClassifier
 
 st.title("Predictive Analytics")
 
-# Load dataset
-df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
+# -------------------------
+# Load Dataset
+# -------------------------
+
+try:
+    df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
+except:
+    st.error("Dataset could not be loaded.")
+    st.stop()
 
 st.subheader("Dataset Preview")
 st.dataframe(df.head())
 
-# Ensure columns exist
-required_columns = ["UrgencyScore","ConsultBudget","PayLikelihood","LegalIssue"]
+# -------------------------
+# Validate Columns
+# -------------------------
 
-for col in required_columns:
-    if col not in df.columns:
-        st.error(f"Column '{col}' missing from dataset.")
-        st.stop()
+required_columns = ["UrgencyScore", "ConsultBudget", "PayLikelihood", "LegalIssue"]
 
-# Clean data
+missing = [col for col in required_columns if col not in df.columns]
+
+if len(missing) > 0:
+    st.error(f"Missing columns in dataset: {missing}")
+    st.stop()
+
+# -------------------------
+# Clean Data
+# -------------------------
+
 df["UrgencyScore"] = pd.to_numeric(df["UrgencyScore"], errors="coerce")
 df["ConsultBudget"] = pd.to_numeric(df["ConsultBudget"], errors="coerce")
 df["PayLikelihood"] = pd.to_numeric(df["PayLikelihood"], errors="coerce")
 
-df.replace([np.inf,-np.inf],np.nan,inplace=True)
-df.dropna(inplace=True)
+df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-# Features
-X = df[["UrgencyScore","ConsultBudget"]]
-y = df["PayLikelihood"].apply(lambda x: 1 if x >= 4 else 0)
+df = df.dropna(subset=["UrgencyScore", "ConsultBudget", "PayLikelihood"])
 
-# Train ML model
+# Ensure dataset still has rows
+if df.shape[0] == 0:
+    st.error("No valid rows available after cleaning.")
+    st.stop()
+
+# -------------------------
+# Train ML Model
+# -------------------------
+
+X = df[["UrgencyScore", "ConsultBudget"]].astype(float)
+y = (df["PayLikelihood"] >= 4).astype(int)
+
 model = RandomForestClassifier(random_state=42)
-model.fit(X,y)
+
+try:
+    model.fit(X, y)
+except:
+    st.error("Model training failed due to invalid data.")
+    st.stop()
 
 st.markdown("---")
 
-# ----------------------------
-# USER INPUT
-# ----------------------------
+# -------------------------
+# User Input
+# -------------------------
 
 st.subheader("Customer Conversion Prediction")
 
-urgency = st.slider("Urgency Score",1,5,3)
-budget = st.slider("Consultation Budget (MNT)",10000,200000,50000)
+urgency = st.slider("Urgency Score", 1, 5, 3)
+budget = st.slider("Consultation Budget (MNT)", 10000, 200000, 50000)
 
 input_df = pd.DataFrame({
-    "UrgencyScore":[urgency],
-    "ConsultBudget":[budget]
+    "UrgencyScore": [float(urgency)],
+    "ConsultBudget": [float(budget)]
 })
 
 prediction = model.predict(input_df)[0]
 probability = model.predict_proba(input_df)[0][1]
 
-# ----------------------------
-# GAUGE CHART
-# ----------------------------
+# -------------------------
+# Probability Gauge
+# -------------------------
 
 st.subheader("Prediction Probability Gauge")
 
-gauge = go.Figure(go.Indicator(
+fig = go.Figure(go.Indicator(
     mode="gauge+number",
-    value=probability*100,
-    title={'text':"Probability Customer Will Pay (%)"},
+    value=probability * 100,
+    title={'text': "Customer Conversion Probability (%)"},
     gauge={
-        'axis':{'range':[0,100]},
-        'bar':{'color':"green"},
-        'steps':[
-            {'range':[0,40],'color':"lightgray"},
-            {'range':[40,70],'color':"yellow"},
-            {'range':[70,100],'color':"lightgreen"}
+        'axis': {'range': [0, 100]},
+        'bar': {'color': "green"},
+        'steps': [
+            {'range': [0, 40], 'color': "lightgray"},
+            {'range': [40, 70], 'color': "yellow"},
+            {'range': [70, 100], 'color': "lightgreen"}
         ]
     }
 ))
 
-st.plotly_chart(gauge)
+st.plotly_chart(fig)
 
-# Conversion message
+# -------------------------
+# Prediction Message
+# -------------------------
+
 if prediction == 1:
-    st.success("High probability of conversion.")
+    st.success("User likely to pay for consultation.")
 else:
-    st.warning("Low probability of conversion.")
+    st.warning("User unlikely to pay.")
 
-st.write(f"Predicted Conversion Probability: {round(probability*100,2)}%")
+st.write(f"Predicted Probability: {round(probability * 100, 2)}%")
 
 st.markdown("---")
 
-# ----------------------------
-# FEATURE IMPORTANCE
-# ----------------------------
+# -------------------------
+# Feature Importance
+# -------------------------
 
 st.subheader("Feature Importance")
 
-importance = model.feature_importances_
-
 importance_df = pd.DataFrame({
-    "Feature":X.columns,
-    "Importance":importance
+    "Feature": X.columns,
+    "Importance": model.feature_importances_
 })
 
-fig = px.bar(
+fig2 = px.bar(
     importance_df,
     x="Feature",
     y="Importance",
     title="Model Feature Importance"
 )
 
-st.plotly_chart(fig)
-
-st.markdown("---")
-
-# ----------------------------
-# LEGAL SERVICE DEMAND PREDICTION
-# ----------------------------
-
-st.subheader("Legal Service Demand Forecast")
-
-demand = df["LegalIssue"].value_counts().reset_index()
-demand.columns=["LegalIssue","Demand"]
-
-fig2 = px.bar(
-    demand,
-    x="LegalIssue",
-    y="Demand",
-    title="Predicted Legal Service Demand by Issue"
-)
-
 st.plotly_chart(fig2)
 
 st.markdown("---")
 
-# ----------------------------
-# CUSTOMER SEGMENT SIMULATION
-# ----------------------------
+# -------------------------
+# Legal Service Demand
+# -------------------------
 
-st.subheader("Customer Conversion Simulation")
+st.subheader("Legal Service Demand Forecast")
 
-sim_urgency = st.slider("Simulated Urgency",1,5,3,key="sim1")
-sim_budget = st.slider("Simulated Budget",10000,200000,50000,key="sim2")
+demand_df = df["LegalIssue"].value_counts().reset_index()
+demand_df.columns = ["LegalIssue", "Demand"]
 
-sim_input = pd.DataFrame({
-    "UrgencyScore":[sim_urgency],
-    "ConsultBudget":[sim_budget]
-})
+fig3 = px.bar(
+    demand_df,
+    x="LegalIssue",
+    y="Demand",
+    title="Legal Service Demand Distribution"
+)
 
-sim_prob = model.predict_proba(sim_input)[0][1]
-
-st.write("Simulated Conversion Probability:",round(sim_prob*100,2),"%")
+st.plotly_chart(fig3)
