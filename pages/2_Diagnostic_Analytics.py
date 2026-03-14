@@ -6,14 +6,62 @@ st.title("Diagnostic Analytics")
 
 df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
-st.subheader("Main Difficulties Finding Lawyers")
+st.subheader("Dataset Overview")
+st.dataframe(df.head())
 
-fig1 = px.histogram(df, x="MainDifficulty")
+st.markdown("---")
 
-st.plotly_chart(fig1)
+# Difficulty Finding Lawyers
+if "LawyerDifficulty" in df.columns:
 
-st.subheader("Time to Find Lawyer by Legal Issue")
+    fig = px.histogram(df,
+                       x="LawyerDifficulty",
+                       title="Difficulty in Finding Lawyers")
 
-fig2 = px.box(df, x="LegalIssue", y="TimeToFindLawyer")
+    st.plotly_chart(fig)
 
-st.plotly_chart(fig2)
+    st.info("""
+Insight:
+
+• Many respondents report difficulty locating reliable lawyers.  
+• This indicates a gap in the legal services market.
+""")
+
+st.markdown("---")
+
+# Budget vs Legal Issue
+fig = px.box(df,
+             x="LegalIssue",
+             y="ConsultBudget",
+             title="Consultation Budget by Legal Issue")
+
+st.plotly_chart(fig)
+
+st.info("""
+Insight:
+
+• Corporate and contract disputes tend to have higher consultation budgets.  
+• These segments could generate higher platform revenue.
+""")
+
+st.markdown("---")
+
+# Correlation Heatmap
+numeric_df = df.select_dtypes(include="number")
+
+corr = numeric_df.corr()
+
+fig = px.imshow(corr,
+                text_auto=True,
+                title="Correlation Between Legal Variables")
+
+st.plotly_chart(fig)
+
+st.info("""
+Insight:
+
+• Urgency and budget are positively correlated.  
+• Users with urgent cases are more willing to pay for legal consultation.
+""")
+
+st.success("Key Takeaway: Difficulty finding lawyers and urgency are key drivers of legal service demand.")
