@@ -1,23 +1,29 @@
 import streamlit as st
-
-st.set_page_config(
-    page_title="Legal Advisor Analytics Dashboard",
-    layout="wide"
-)
+import pandas as pd
+import matplotlib.pyplot as plt
 
 st.title("Legal Advisor Application - Mongolia")
 
-st.markdown("""
-### Dashboard Objective
+df = pd.read_csv("data/mongolia_legal_survey_synthetic_2000.csv")
 
-Monitor and optimize the conversion of users seeking legal help into paying legal consultations while ensuring lawyer availability and service quality.
-""")
+st.subheader("Legal Issue Distribution")
 
-st.markdown("""
-Use the navigation sidebar to explore:
+fig = plt.figure()
+df["LegalIssue"].value_counts().plot(kind="bar")
+st.pyplot(fig)
 
-• Descriptive Analytics  
-• Diagnostic Analytics  
-• Predictive Analytics  
-• Prescriptive Insights
-""")
+
+st.subheader("Preferred Consultation")
+
+fig = plt.figure()
+df["PreferredConsultation"].value_counts().plot(kind="bar")
+st.pyplot(fig)
+
+
+st.subheader("Urgency vs Pay Likelihood")
+
+fig = plt.figure()
+plt.scatter(df["UrgencyScore"], df["PayLikelihood"])
+plt.xlabel("Urgency")
+plt.ylabel("Pay Likelihood")
+st.pyplot(fig)
