@@ -1,30 +1,32 @@
 import streamlit as st
+import pandas as pd
 
 st.set_page_config(
-    page_title="LegalTech Analytics Dashboard",
-    page_icon="⚖️",
+    page_title="LegalTech Analytics Platform",
     layout="wide"
 )
 
-def load_css():
-    with open("styles.css") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+st.title("⚖️ Mongolia LegalTech Intelligence Dashboard")
 
-load_css()
+st.markdown("AI-powered legal demand analytics platform")
 
-st.title("⚖️ Mongolia LegalTech Analytics Platform")
+df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
+
+# KPI HEADER
+col1,col2,col3,col4 = st.columns(4)
+
+col1.metric("Total Survey Users", len(df))
+col2.metric("Cities Covered", df["City"].nunique())
+col3.metric("Legal Issues Types", df["LegalIssue"].nunique())
+col4.metric("Average Budget", f"${int(df['ConsultBudget'].mean())}")
+
+st.markdown("---")
 
 st.markdown("""
-This dashboard analyzes **legal service demand in Mongolia**.
+### Platform Capabilities
 
-Analytics modules:
-
-• Descriptive Analytics  
-• Diagnostic Analytics  
-• Predictive Analytics  
-• Prescriptive Analytics
-
-Use the sidebar to navigate.
+• Descriptive analytics  
+• Diagnostic user segmentation  
+• Predictive ML demand modeling  
+• Prescriptive AI lawyer recommendations
 """)
-
-st.success("Select a page from the sidebar.")
