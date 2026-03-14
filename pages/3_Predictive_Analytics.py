@@ -1,41 +1,29 @@
 import streamlit as st
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
 
 st.title("Predictive Analytics")
 
 df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
-features = ["AgeGroup","Income","LegalIssue","UrgencyScore"]
+features = ["UrgencyScore", "ConsultBudget"]
+target = "PayLikelihood"
 
-data = df[features + ["PayLikelihood"]].copy()
+df = df.dropna()
 
-encoder = LabelEncoder()
-
-for col in features:
-    data[col] = encoder.fit_transform(data[col])
-
-X = data[features]
-y = data["PayLikelihood"] >= 4
+X = df[features]
+y = df[target] > 3
 
 model = RandomForestClassifier()
 
-model.fit(X,y)
+model.fit(X, y)
 
 st.subheader("Predict Paying Customer")
 
-age = st.selectbox("AgeGroup", df["AgeGroup"].unique())
-income = st.selectbox("Income", df["Income"].unique())
-issue = st.selectbox("LegalIssue", df["LegalIssue"].unique())
-urgency = st.slider("UrgencyScore",1,5)
+urgency = st.slider("Urgency Score", 1, 5)
+budget = st.slider("Consultation Budget", 10000, 200000)
 
-input_df = pd.DataFrame([[age,income,issue,urgency]], columns=features)
+prediction = model.predict([[urgency, budget]])
 
-for col in features[:-1]:
-    input_df[col] = encoder.fit_transform(input_df[col])
-
-prediction = model.predict(input_df)
-
-st.write("Prediction (1 = Likely to Pay):")
-st.write(prediction)
+st.write("Will the user likely pay for consultation?")
+st.write(prediction[0])
