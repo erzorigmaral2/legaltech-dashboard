@@ -1,75 +1,39 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from sklearn.preprocessing import LabelEncoder
 from sklearn.cluster import KMeans
 
 st.title("Diagnostic Analytics")
 
-# -----------------------
-# LOAD DATA
-# -----------------------
 df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
-# -----------------------
-# SELECT FEATURES
-# -----------------------
+cols = ["City","LegalIssue","IncomeLevel","PreferredService"]
 
-features = df[[
-    "LegalIssue",
-    "City",
-    "IncomeLevel",
-    "PreferredService",
-    "AgeGroup"
-]].copy()
+enc = LabelEncoder()
 
-# -----------------------
-# ENCODE CATEGORICAL DATA
-# -----------------------
+for c in cols:
+    df[c] = enc.fit_transform(df[c].astype(str))
 
-features = pd.get_dummies(features)
+features = df[cols]
 
-# remove rows with missing values
-features = features.dropna()
+kmeans = KMeans(n_clusters=4, random_state=42,n_init=10)
 
-# -----------------------
-# CHECK DATA
-# -----------------------
-
-if len(features) < 20:
-    st.error("Dataset still too small for clustering.")
-    st.stop()
-
-# -----------------------
-# RUN KMEANS
-# -----------------------
-
-kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
-
-segments = kmeans.fit_predict(features)
-
-df["Segment"] = segments
-
-# -----------------------
-# VISUALIZATION
-# -----------------------
-
-st.subheader("User Segmentation")
+df["Segment"] = kmeans.fit_predict(features)
 
 fig = px.scatter(
     df,
     x="IncomeLevel",
     y="LegalIssue",
     color=df["Segment"].astype(str),
-    title="Legal Service User Segments"
+    title="User Segmentation"
 )
 
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig,use_container_width=True)
 
 st.info("""
-Segment insights:
-
-Segment 0 – Young users seeking basic legal advice  
-Segment 1 – Corporate / business legal demand  
-Segment 2 – Family & civil legal services  
-Segment 3 – High-income premium legal consultation
+Segment 0 – Low income legal advice seekers  
+Segment 1 – Family law clients  
+Segment 2 – Business legal users  
+Segment 3 – Premium legal consultation clients
 """)
