@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 
-st.title("Predictive Analytics - Legal Consultation Conversion")
+st.title("Predictive Analytics - Legal App Conversion Prediction")
 
 # -----------------------------
 # Load Dataset
@@ -23,7 +23,25 @@ st.subheader("Dataset Preview")
 st.dataframe(df.head())
 
 # -----------------------------
-# Data Cleaning
+# Check Target Column
+# -----------------------------
+
+if "UseLegalApp" not in df.columns:
+    st.error("Target column 'UseLegalApp' not found in dataset.")
+    st.stop()
+
+# -----------------------------
+# Convert Target to Binary
+# -----------------------------
+
+df["UseLegalApp"] = df["UseLegalApp"].map({
+    "Yes": 1,
+    "Maybe": 1,
+    "No": 0
+})
+
+# -----------------------------
+# Convert Numeric Columns
 # -----------------------------
 
 df["ConsultBudget"] = pd.to_numeric(df["ConsultBudget"], errors="coerce")
@@ -32,7 +50,7 @@ df["UrgencyScore"] = pd.to_numeric(df["UrgencyScore"], errors="coerce")
 df.fillna(df.median(numeric_only=True), inplace=True)
 
 # -----------------------------
-# Encode Categorical Variables
+# Encode Categorical Features
 # -----------------------------
 
 encoder = LabelEncoder()
@@ -41,21 +59,11 @@ for col in df.select_dtypes(include="object").columns:
     df[col] = encoder.fit_transform(df[col])
 
 # -----------------------------
-# Define Target Variable
+# Split Features and Target
 # -----------------------------
 
-target_column = "WillUseApp"
-
-if target_column not in df.columns:
-    st.error("Target column 'WillUseApp' not found in dataset.")
-    st.stop()
-
-X = df.drop(columns=[target_column])
-y = df[target_column]
-
-# -----------------------------
-# Train Test Split
-# -----------------------------
+X = df.drop(columns=["UseLegalApp"])
+y = df["UseLegalApp"]
 
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
@@ -74,49 +82,39 @@ gb.fit(X_train, y_train)
 lr.fit(X_train, y_train)
 
 # -----------------------------
-# Model Predictions
+# Model Evaluation
 # -----------------------------
 
-rf_pred = rf.predict(X_test)
-gb_pred = gb.predict(X_test)
-lr_pred = lr.predict(X_test)
-
-rf_acc = accuracy_score(y_test, rf_pred)
-gb_acc = accuracy_score(y_test, gb_pred)
-lr_acc = accuracy_score(y_test, lr_pred)
-
-# -----------------------------
-# Model Accuracy Comparison
-# -----------------------------
-
-st.subheader("Model Performance Comparison")
+rf_acc = accuracy_score(y_test, rf.predict(X_test))
+gb_acc = accuracy_score(y_test, gb.predict(X_test))
+lr_acc = accuracy_score(y_test, lr.predict(X_test))
 
 accuracy_df = pd.DataFrame({
     "Model": ["Random Forest", "Gradient Boosting", "Logistic Regression"],
     "Accuracy": [rf_acc, gb_acc, lr_acc]
 })
 
+st.subheader("Model Accuracy Comparison")
+
 fig = px.bar(
     accuracy_df,
     x="Model",
     y="Accuracy",
-    title="ML Model Accuracy Comparison"
+    title="ML Model Performance"
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
 st.info("""
-Insight:
+Insight
 
-Tree-based models such as Random Forest and Gradient Boosting often perform better
-for behavioral prediction problems like legal service adoption.
+Tree-based models often perform better for behavioral prediction such as
+legal consultation adoption.
 """)
 
 # -----------------------------
 # Feature Importance
 # -----------------------------
-
-st.subheader("Feature Importance (Random Forest)")
 
 importance = pd.DataFrame({
     "Feature": X.columns,
@@ -125,41 +123,33 @@ importance = pd.DataFrame({
 
 importance = importance.sort_values("Importance", ascending=False)
 
+st.subheader("Top Features Driving Conversion")
+
 fig2 = px.bar(
     importance.head(10),
     x="Importance",
     y="Feature",
     orientation="h",
-    title="Top Features Influencing Legal Consultation Conversion"
+    title="Feature Importance (Random Forest)"
 )
 
 st.plotly_chart(fig2, use_container_width=True)
 
-st.info("""
-Insight:
-
-Features such as legal urgency, consultation budget, and legal issue type
-are key drivers of whether users will convert into paying clients.
-""")
-
 # -----------------------------
-# Conversion Probability Tool
+# Conversion Probability
 # -----------------------------
 
-st.subheader("Predict User Conversion Probability")
+st.subheader("Sample User Conversion Probability")
 
 sample = X.sample(1)
 
-prediction_prob = rf.predict_proba(sample)[0][1]
+prob = rf.predict_proba(sample)[0][1]
 
-st.metric(
-    "Predicted Conversion Probability",
-    str(round(prediction_prob * 100, 2)) + "%"
-)
+st.metric("Predicted Conversion Probability", str(round(prob*100,2))+"%")
 
 st.success("""
-Business Insight:
+Business Insight
 
-Users with high predicted probability should receive targeted offers,
-lawyer recommendations, or discounts to increase conversion rates.
+Users with high predicted conversion probability should receive
+lawyer recommendations and targeted consultation offers.
 """)
