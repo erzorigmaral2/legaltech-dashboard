@@ -7,154 +7,148 @@ from sklearn.ensemble import RandomForestClassifier
 
 st.title("Predictive Analytics")
 
-# -------------------------
+# -----------------------------
 # Load Dataset
-# -------------------------
+# -----------------------------
 
-try:
-    df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
-except:
-    st.error("Dataset could not be loaded.")
-    st.stop()
+df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
 st.subheader("Dataset Preview")
 st.dataframe(df.head())
 
-# -------------------------
-# Validate Columns
-# -------------------------
+# -----------------------------
+# Ensure Required Columns
+# -----------------------------
 
-required_columns = ["UrgencyScore", "ConsultBudget", "PayLikelihood", "LegalIssue"]
+required = ["UrgencyScore","ConsultBudget","PayLikelihood"]
 
-missing = [col for col in required_columns if col not in df.columns]
+for col in required:
+    if col not in df.columns:
+        st.error(f"Column missing: {col}")
+        st.stop()
 
-if len(missing) > 0:
-    st.error(f"Missing columns in dataset: {missing}")
-    st.stop()
-
-# -------------------------
-# Clean Data
-# -------------------------
+# -----------------------------
+# Convert Data Safely
+# -----------------------------
 
 df["UrgencyScore"] = pd.to_numeric(df["UrgencyScore"], errors="coerce")
 df["ConsultBudget"] = pd.to_numeric(df["ConsultBudget"], errors="coerce")
 df["PayLikelihood"] = pd.to_numeric(df["PayLikelihood"], errors="coerce")
 
-df.replace([np.inf, -np.inf], np.nan, inplace=True)
+# Replace invalid values with median instead of deleting rows
+df["UrgencyScore"].fillna(df["UrgencyScore"].median(), inplace=True)
+df["ConsultBudget"].fillna(df["ConsultBudget"].median(), inplace=True)
+df["PayLikelihood"].fillna(df["PayLikelihood"].median(), inplace=True)
 
-df = df.dropna(subset=["UrgencyScore", "ConsultBudget", "PayLikelihood"])
+# Replace infinite values
+df.replace([np.inf,-np.inf],np.nan,inplace=True)
+df.fillna(df.median(numeric_only=True), inplace=True)
 
-# Ensure dataset still has rows
-if df.shape[0] == 0:
-    st.error("No valid rows available after cleaning.")
-    st.stop()
+# -----------------------------
+# Prepare ML Data
+# -----------------------------
 
-# -------------------------
-# Train ML Model
-# -------------------------
-
-X = df[["UrgencyScore", "ConsultBudget"]].astype(float)
+X = df[["UrgencyScore","ConsultBudget"]]
 y = (df["PayLikelihood"] >= 4).astype(int)
 
-model = RandomForestClassifier(random_state=42)
+# -----------------------------
+# Train Model
+# -----------------------------
 
-try:
-    model.fit(X, y)
-except:
-    st.error("Model training failed due to invalid data.")
-    st.stop()
+model = RandomForestClassifier(random_state=42)
+model.fit(X,y)
 
 st.markdown("---")
 
-# -------------------------
-# User Input
-# -------------------------
+# -----------------------------
+# Prediction Input
+# -----------------------------
 
 st.subheader("Customer Conversion Prediction")
 
-urgency = st.slider("Urgency Score", 1, 5, 3)
-budget = st.slider("Consultation Budget (MNT)", 10000, 200000, 50000)
+urgency = st.slider("Urgency Score",1,5,3)
+budget = st.slider("Consultation Budget (MNT)",10000,200000,50000)
 
-input_df = pd.DataFrame({
-    "UrgencyScore": [float(urgency)],
-    "ConsultBudget": [float(budget)]
+input_data = pd.DataFrame({
+    "UrgencyScore":[urgency],
+    "ConsultBudget":[budget]
 })
 
-prediction = model.predict(input_df)[0]
-probability = model.predict_proba(input_df)[0][1]
+prediction = model.predict(input_data)[0]
+probability = model.predict_proba(input_data)[0][1]
 
-# -------------------------
+# -----------------------------
 # Probability Gauge
-# -------------------------
+# -----------------------------
 
-st.subheader("Prediction Probability Gauge")
+st.subheader("Conversion Probability Gauge")
 
 fig = go.Figure(go.Indicator(
     mode="gauge+number",
-    value=probability * 100,
-    title={'text': "Customer Conversion Probability (%)"},
+    value=probability*100,
+    title={'text':"Customer Conversion Probability (%)"},
     gauge={
-        'axis': {'range': [0, 100]},
-        'bar': {'color': "green"},
-        'steps': [
-            {'range': [0, 40], 'color': "lightgray"},
-            {'range': [40, 70], 'color': "yellow"},
-            {'range': [70, 100], 'color': "lightgreen"}
+        'axis':{'range':[0,100]},
+        'bar':{'color':"green"},
+        'steps':[
+            {'range':[0,40],'color':"lightgray"},
+            {'range':[40,70],'color':"yellow"},
+            {'range':[70,100],'color':"lightgreen"}
         ]
     }
 ))
 
 st.plotly_chart(fig)
 
-# -------------------------
-# Prediction Message
-# -------------------------
+# -----------------------------
+# Prediction Result
+# -----------------------------
 
 if prediction == 1:
-    st.success("User likely to pay for consultation.")
+    st.success("User likely to pay for legal consultation.")
 else:
     st.warning("User unlikely to pay.")
 
-st.write(f"Predicted Probability: {round(probability * 100, 2)}%")
+st.write(f"Conversion Probability: {round(probability*100,2)}%")
 
 st.markdown("---")
 
-# -------------------------
+# -----------------------------
 # Feature Importance
-# -------------------------
+# -----------------------------
 
 st.subheader("Feature Importance")
 
-importance_df = pd.DataFrame({
-    "Feature": X.columns,
-    "Importance": model.feature_importances_
+importance = pd.DataFrame({
+    "Feature":X.columns,
+    "Importance":model.feature_importances_
 })
 
 fig2 = px.bar(
-    importance_df,
+    importance,
     x="Feature",
     y="Importance",
-    title="Model Feature Importance"
+    title="Feature Importance for Conversion Prediction"
 )
 
 st.plotly_chart(fig2)
 
-st.markdown("---")
+# -----------------------------
+# Legal Demand Insights
+# -----------------------------
 
-# -------------------------
-# Legal Service Demand
-# -------------------------
+if "LegalIssue" in df.columns:
 
-st.subheader("Legal Service Demand Forecast")
+    st.subheader("Legal Service Demand")
 
-demand_df = df["LegalIssue"].value_counts().reset_index()
-demand_df.columns = ["LegalIssue", "Demand"]
+    demand = df["LegalIssue"].value_counts().reset_index()
+    demand.columns=["LegalIssue","Demand"]
 
-fig3 = px.bar(
-    demand_df,
-    x="LegalIssue",
-    y="Demand",
-    title="Legal Service Demand Distribution"
-)
+    fig3 = px.bar(
+        demand,
+        x="LegalIssue",
+        y="Demand",
+        title="Demand for Legal Services"
+    )
 
-st.plotly_chart(fig3)
+    st.plotly_chart(fig3)
