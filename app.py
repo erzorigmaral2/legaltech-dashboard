@@ -8,21 +8,14 @@ st.set_page_config(
 
 st.sidebar.title("LegalTech Analytics Dashboard")
 
-st.sidebar.info("""
-Navigation
-
-• Descriptive Analytics  
-• Diagnostic Analytics  
-• Predictive Analytics  
-• Prescriptive Analytics
-""")
+st.sidebar.success("Select a page above.")
 
 st.title("Legal Advisor App – Mongolia")
 
 st.header("Objective")
 
 st.write("""
-Monitor and optimize the conversion of users seeking legal help into paying legal consultations
+Monitor and optimize the conversion of users seeking legal help into paying legal consultations 
 while ensuring lawyer availability and service quality.
 """)
 
@@ -32,17 +25,16 @@ st.subheader("Analytics Modules")
 
 st.markdown("""
 **Descriptive Analytics**
-- Understand user demographics
-- Analyze legal service demand
+- Understand user demographics and legal demand
 
 **Diagnostic Analytics**
-- Identify barriers to finding lawyers
+- Identify problems users face finding lawyers
 
 **Predictive Analytics**
-- Predict likelihood of users paying for consultations
+- Predict which users will pay for legal consultations
 
 **Prescriptive Analytics**
-- Generate strategic recommendations
+- Generate recommendations using association rule mining
 """)
 
-st.success("Use the sidebar to explore analytics pages.")
+st.info("Use the sidebar to navigate between analytics views.")
