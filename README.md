@@ -1,12 +1,11 @@
-# Legal Advisor Application Analytics Dashboard
+Legal Advisor Analytics Dashboard
 
 This project analyzes survey data for a Legal Advisor mobile application in Mongolia.
 
-The dashboard provides four analytical views:
-
-- Descriptive Analytics
-- Diagnostic Analytics
-- Predictive Analytics
-- Prescriptive Insights
-
-The dashboard is built using Streamlit.
+Modules include:
+- Descriptive analytics
+- Predictive analytics
+- Association rule mining
+- Customer segmentation
+- Legal demand forecasting
+- Marketplace pricing optimization
