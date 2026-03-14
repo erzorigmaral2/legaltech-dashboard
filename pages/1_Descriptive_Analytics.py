@@ -6,14 +6,14 @@ st.title("Descriptive Analytics")
 
 df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
+st.subheader("Dataset Overview")
+st.dataframe(df.head())
+
 st.subheader("Legal Issue Distribution")
 
-issue_counts = df["LegalIssue"].value_counts().reset_index()
-issue_counts.columns = ["LegalIssue","Count"]
+fig1 = px.histogram(df, x="LegalIssue")
 
-fig = px.bar(issue_counts, x="LegalIssue", y="Count")
-
-st.plotly_chart(fig)
+st.plotly_chart(fig1)
 
 st.subheader("Age Group Distribution")
 
