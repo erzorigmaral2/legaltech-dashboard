@@ -1,41 +1,41 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 
-from sklearn.cluster import KMeans
-from sklearn.preprocessing import LabelEncoder
-
-st.title("User Segmentation")
+st.title("Prescriptive Analytics")
 
 df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
-# Convert numeric
-df["ConsultBudget"] = pd.to_numeric(df["ConsultBudget"], errors="coerce")
-df["UrgencyScore"] = pd.to_numeric(df["UrgencyScore"], errors="coerce")
+df["ConsultBudget"] = pd.to_numeric(df["ConsultBudget"],errors="coerce")
+df["UrgencyScore"] = pd.to_numeric(df["UrgencyScore"],errors="coerce")
 
-df.fillna(df.median(numeric_only=True), inplace=True)
+df.fillna(df.median(numeric_only=True),inplace=True)
 
-features = df[["ConsultBudget","UrgencyScore"]]
+def recommendation(row):
 
-kmeans = KMeans(n_clusters=3,random_state=42,n_init=10)
+    if row["ConsultBudget"] > 200 and row["UrgencyScore"] > 4:
+        return "Premium Lawyer"
 
-df["Segment"] = kmeans.fit_predict(features)
+    elif row["UrgencyScore"] > 4:
+        return "Fast Online Consultation"
 
-fig = px.scatter(
+    else:
+        return "Standard Legal Advice"
+
+df["Recommendation"] = df.apply(recommendation,axis=1)
+
+fig = px.histogram(
     df,
-    x="ConsultBudget",
-    y="UrgencyScore",
-    color=df["Segment"].astype(str),
-    title="Legal Client Segmentation"
+    x="Recommendation",
+    title="Recommended Legal Services"
 )
 
 st.plotly_chart(fig,use_container_width=True)
 
 st.info("""
-Insight
+Strategy Recommendation
 
-Segment 1: budget-sensitive users  
-Segment 2: urgent legal cases  
-Segment 3: premium clients willing to pay higher consultation fees
+• Premium legal services for high budget urgent users  
+• Fast online consultations for urgent issues  
+• Standard advice packages for low urgency cases
 """)
