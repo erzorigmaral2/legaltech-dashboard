@@ -2,9 +2,9 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
-
 st.title("Descriptive Analytics")
+
+df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
 st.subheader("Legal Issue Distribution")
 
