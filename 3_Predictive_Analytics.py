@@ -1,29 +1,41 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
 
-df = pd.read_csv("data/mongolia_legal_survey_synthetic_2000.csv")
+df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
 st.title("Predictive Analytics")
 
-st.subheader("Urgency vs Pay Likelihood")
+features = ["AgeGroup","Income","LegalIssue","UrgencyScore"]
 
-fig = plt.figure()
+data = df[features + ["PayLikelihood"]]
 
-plt.scatter(df["UrgencyScore"], df["PayLikelihood"])
+encoder = LabelEncoder()
 
-plt.xlabel("Urgency Score")
-plt.ylabel("Pay Likelihood")
+for col in features:
+    data[col] = encoder.fit_transform(data[col])
 
-st.pyplot(fig)
+X = data[features]
+y = data["PayLikelihood"] >= 4
 
+model = RandomForestClassifier()
 
-st.subheader("Income vs Consultation Budget")
+model.fit(X,y)
 
-table = pd.crosstab(df["Income"], df["ConsultBudget"])
+st.subheader("Predict Paying Customer")
 
-fig = plt.figure()
+age = st.selectbox("AgeGroup",df["AgeGroup"].unique())
+income = st.selectbox("Income",df["Income"].unique())
+issue = st.selectbox("LegalIssue",df["LegalIssue"].unique())
+urgency = st.slider("UrgencyScore",1,5)
 
-table.plot(kind="bar")
+input_df = pd.DataFrame([[age,income,issue,urgency]],columns=features)
 
-st.pyplot(fig)
+for col in features[:-1]:
+    input_df[col] = encoder.fit_transform(input_df[col])
+
+prediction = model.predict(input_df)
+
+st.write("Will the user pay for consultation?")
+st.write(prediction)
