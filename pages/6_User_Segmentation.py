@@ -4,7 +4,7 @@ import numpy as np
 import plotly.express as px
 from sklearn.cluster import KMeans
 
-st.title("User Segmentation (K-Means Clustering)")
+st.title("User Segmentation (K-Means ML Clustering)")
 
 # -----------------------------
 # Load Dataset
@@ -23,65 +23,95 @@ st.dataframe(df.head())
 df["ConsultBudget"] = pd.to_numeric(df["ConsultBudget"], errors="coerce")
 df["UrgencyScore"] = pd.to_numeric(df["UrgencyScore"], errors="coerce")
 
-# Replace invalid values
+# Replace infinite values
 df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-# Fill missing values
-df["ConsultBudget"].fillna(df["ConsultBudget"].median(), inplace=True)
-df["UrgencyScore"].fillna(df["UrgencyScore"].median(), inplace=True)
+# Fill missing values with median
+df["ConsultBudget"] = df["ConsultBudget"].fillna(df["ConsultBudget"].median())
+df["UrgencyScore"] = df["UrgencyScore"].fillna(df["UrgencyScore"].median())
 
 # -----------------------------
 # Prepare Features
 # -----------------------------
 
-features = df[["ConsultBudget", "UrgencyScore"]].astype(float)
+features = df[["ConsultBudget", "UrgencyScore"]]
+
+# Drop any remaining invalid rows
+features = features.dropna()
+
+# Ensure numeric
+features = features.astype(float)
+
+# Reset index to keep alignment
+features.reset_index(drop=True, inplace=True)
 
 # -----------------------------
-# KMeans Model
+# Safety Check
+# -----------------------------
+
+if features.shape[0] == 0:
+    st.error("No valid rows available for clustering after cleaning.")
+    st.stop()
+
+# -----------------------------
+# KMeans Clustering
 # -----------------------------
 
 kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
 
-df["Segment"] = kmeans.fit_predict(features)
+segments = kmeans.fit_predict(features)
+
+# Add segments back to dataframe
+df = df.loc[features.index]
+df["Segment"] = segments
 
 # -----------------------------
 # Visualization
 # -----------------------------
+
+st.subheader("Customer Segmentation Map")
 
 fig = px.scatter(
     df,
     x="ConsultBudget",
     y="UrgencyScore",
     color=df["Segment"].astype(str),
-    title="Customer Segmentation Based on Budget and Urgency"
+    title="Legal Client Segmentation (Budget vs Urgency)",
+    labels={
+        "ConsultBudget": "Consultation Budget",
+        "UrgencyScore": "Legal Urgency Score"
+    }
 )
 
-st.plotly_chart(fig)
+st.plotly_chart(fig, use_container_width=True)
 
 # -----------------------------
-# Segment Summary
+# Segment Profiles
 # -----------------------------
 
-segment_summary = df.groupby("Segment")[["ConsultBudget","UrgencyScore"]].mean()
+st.subheader("Segment Profile Summary")
 
-st.subheader("Segment Profile")
+summary = df.groupby("Segment")[["ConsultBudget", "UrgencyScore"]].mean().round(2)
 
-st.dataframe(segment_summary)
+st.dataframe(summary)
 
 # -----------------------------
-# Insights
+# Business Insights
 # -----------------------------
 
 st.info("""
-Insight
+Segmentation Insights
 
-Segment 0 → Low budget users with moderate urgency  
-Segment 1 → High urgency clients needing fast legal help  
-Segment 2 → High budget premium legal service users
+Segment 0 → Budget-sensitive users needing basic legal guidance  
+Segment 1 → High urgency users who require immediate legal help  
+Segment 2 → Premium clients willing to pay for professional legal consultation
 """)
 
 st.success("""
-Key Takeaway
+Startup Strategy Insight
 
-Customer segmentation helps the legal advisor platform target users with personalized services and pricing strategies.
+The platform should create:
+• Low-cost automated legal advice for Segment 0  
+• Instant lawyer matching for Segment 1  
+• Premium consultation packages for Segment 2
 """)
