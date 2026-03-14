@@ -8,12 +8,9 @@ df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
 st.subheader("Main Difficulties Finding Lawyers")
 
-difficulty = df["MainDifficulty"].value_counts().reset_index()
-difficulty.columns = ["Difficulty","Count"]
+fig1 = px.histogram(df, x="MainDifficulty")
 
-fig = px.bar(difficulty, x="Difficulty", y="Count")
-
-st.plotly_chart(fig)
+st.plotly_chart(fig1)
 
 st.subheader("Time to Find Lawyer by Legal Issue")
 
