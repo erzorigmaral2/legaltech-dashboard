@@ -1,36 +1,26 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+from mlxtend.frequent_patterns import apriori,association_rules
+import plotly.express as px
 
-df = pd.read_csv("data/mongolia_legal_survey_synthetic_2000.csv")
+df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
-st.title("Prescriptive Insights")
+st.title("Prescriptive Analytics")
 
-st.subheader("Trust Factors for Legal Platform")
+st.subheader("Association Rules")
 
-fig = plt.figure()
+data = pd.get_dummies(df[
+    ["MainDifficulty","PreferredConsultation","TrustFactor"]
+])
 
-df["TrustFactor"].value_counts().plot(kind="bar")
+freq = apriori(data,min_support=0.05,use_colnames=True)
 
-st.pyplot(fig)
+rules = association_rules(freq,metric="confidence",min_threshold=0.5)
 
+fig = px.scatter(
+    rules,
+    x="confidence",
+    y="lift"
+)
 
-st.subheader("Conversion Funnel")
-
-total = len(df)
-
-interested = len(df[df["AppInterest"]=="Yes"])
-
-likely_to_pay = len(df[df["PayLikelihood"]>=4])
-
-funnel = {
-    "Legal Need": total,
-    "App Interest": interested,
-    "Likely to Pay": likely_to_pay
-}
-
-fig = plt.figure()
-
-plt.bar(funnel.keys(), funnel.values())
-
-st.pyplot(fig)
+st.plotly_chart(fig)
