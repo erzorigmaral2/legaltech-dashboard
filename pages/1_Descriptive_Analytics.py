@@ -4,36 +4,62 @@ import plotly.express as px
 
 st.title("Descriptive Analytics")
 
+# Load dataset
 df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
-col1,col2 = st.columns(2)
+st.write("Dataset Preview")
+st.dataframe(df.head())
 
-with col1:
+# Identify categorical columns automatically
+cat_cols = df.select_dtypes(include=["object"]).columns.tolist()
+
+# Identify numeric columns
+num_cols = df.select_dtypes(include=["int64","float64"]).columns.tolist()
+
+# -------------------------------
+# CATEGORICAL DISTRIBUTION
+# -------------------------------
+
+if len(cat_cols) > 0:
+
+    column = st.selectbox(
+        "Select category to analyze",
+        cat_cols
+    )
+
     fig = px.histogram(
         df,
-        x="LegalIssue",
-        title="Legal Issue Distribution"
+        x=column,
+        title=f"Distribution of {column}"
     )
-    st.plotly_chart(fig,use_container_width=True)
 
-with col2:
-    fig = px.histogram(
+    st.plotly_chart(fig, use_container_width=True)
+
+    st.info(f"""
+    This chart shows how users are distributed across **{column}**.
+    It helps identify which categories dominate legal demand.
+    """)
+
+# -------------------------------
+# NUMERIC ANALYSIS
+# -------------------------------
+
+if len(num_cols) > 0:
+
+    column = st.selectbox(
+        "Select numeric column",
+        num_cols
+    )
+
+    fig = px.box(
         df,
-        x="City",
-        title="Demand by City"
+        y=column,
+        title=f"{column} Distribution"
     )
-    st.plotly_chart(fig,use_container_width=True)
 
-fig = px.box(
-    df,
-    x="LegalIssue",
-    y="ConsultBudget",
-    title="Budget Distribution by Legal Issue"
-)
+    st.plotly_chart(fig, use_container_width=True)
 
-st.plotly_chart(fig,use_container_width=True)
-
-st.info("""
-Family and business law generate the highest consultation demand.
-Cities like Ulaanbaatar dominate legal service usage.
-""")
+    st.info(f"""
+    This visualization highlights spread and outliers in **{column}** values.
+    Useful for understanding consultation budgets or other numeric indicators.
+    """)
