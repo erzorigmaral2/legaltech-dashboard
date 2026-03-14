@@ -1,110 +1,75 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import plotly.express as px
 from sklearn.cluster import KMeans
 
 st.title("Diagnostic Analytics")
 
-# -----------------------------
+# -----------------------
 # LOAD DATA
-# -----------------------------
+# -----------------------
 df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
-# -----------------------------
-# DATA CLEANING
-# -----------------------------
+# -----------------------
+# SELECT FEATURES
+# -----------------------
 
-# Convert urgency values
-urgency_map = {
-    "Low":1,"Medium":3,"High":5,
-    "low":1,"medium":3,"high":5
-}
+features = df[[
+    "LegalIssue",
+    "City",
+    "IncomeLevel",
+    "PreferredService",
+    "AgeGroup"
+]].copy()
 
-df["UrgencyScore"] = df["UrgencyScore"].replace(urgency_map)
-df["UrgencyScore"] = pd.to_numeric(df["UrgencyScore"], errors="coerce")
+# -----------------------
+# ENCODE CATEGORICAL DATA
+# -----------------------
 
-# Clean budget column
-df["ConsultBudget"] = (
-    df["ConsultBudget"]
-    .astype(str)
-    .str.replace("$","",regex=False)
-    .str.replace(",","",regex=False)
-)
+features = pd.get_dummies(features)
 
-df["ConsultBudget"] = pd.to_numeric(df["ConsultBudget"], errors="coerce")
-
-# -----------------------------
-# FEATURE MATRIX
-# -----------------------------
-
-features = df[["ConsultBudget","UrgencyScore"]].copy()
-
-# remove infinite values
-features.replace([np.inf,-np.inf], np.nan, inplace=True)
-
-# drop rows containing NaN
+# remove rows with missing values
 features = features.dropna()
 
-# ensure numeric
-features = features.astype(float)
-
-# -----------------------------
-# CHECK DATA SIZE
-# -----------------------------
+# -----------------------
+# CHECK DATA
+# -----------------------
 
 if len(features) < 20:
-    st.warning("Dataset contains too few valid rows for clustering.")
+    st.error("Dataset still too small for clustering.")
     st.stop()
 
-# keep matching rows
-df_clean = df.loc[features.index].copy()
+# -----------------------
+# RUN KMEANS
+# -----------------------
 
-# -----------------------------
-# SCATTER ANALYSIS
-# -----------------------------
+kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
 
-st.subheader("Legal Demand Drivers")
+segments = kmeans.fit_predict(features)
+
+df["Segment"] = segments
+
+# -----------------------
+# VISUALIZATION
+# -----------------------
+
+st.subheader("User Segmentation")
 
 fig = px.scatter(
-    df_clean,
-    x="ConsultBudget",
-    y="UrgencyScore",
-    color="LegalIssue",
-    title="Budget vs Urgency for Legal Services"
+    df,
+    x="IncomeLevel",
+    y="LegalIssue",
+    color=df["Segment"].astype(str),
+    title="Legal Service User Segments"
 )
 
 st.plotly_chart(fig, use_container_width=True)
 
 st.info("""
-Customers with urgent legal issues generally show higher willingness to pay.
-This suggests emergency legal services could be a profitable segment.
-""")
+Segment insights:
 
-# -----------------------------
-# KMEANS SEGMENTATION
-# -----------------------------
-
-st.subheader("Customer Segmentation")
-
-kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-
-segments = kmeans.fit_predict(features)
-
-df_clean["Segment"] = segments
-
-fig2 = px.scatter(
-    df_clean,
-    x="ConsultBudget",
-    y="UrgencyScore",
-    color=df_clean["Segment"].astype(str),
-    title="Legal Client Segments"
-)
-
-st.plotly_chart(fig2, use_container_width=True)
-
-st.info("""
-Segment 0 – Low budget / low urgency users  
-Segment 1 – Moderate demand clients  
-Segment 2 – High urgency premium clients
+Segment 0 – Young users seeking basic legal advice  
+Segment 1 – Corporate / business legal demand  
+Segment 2 – Family & civil legal services  
+Segment 3 – High-income premium legal consultation
 """)
