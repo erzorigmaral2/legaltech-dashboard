@@ -3,9 +3,9 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.preprocessing import LabelEncoder
 
-df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
-
 st.title("Predictive Analytics")
+
+df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
 features = ["AgeGroup","Income","LegalIssue","UrgencyScore"]
 
