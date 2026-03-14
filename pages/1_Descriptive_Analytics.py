@@ -9,20 +9,57 @@ df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 st.subheader("Dataset Overview")
 st.dataframe(df.head())
 
-st.subheader("Legal Issue Distribution")
+# KPI Metrics
+col1,col2,col3 = st.columns(3)
 
-fig1 = px.histogram(df, x="LegalIssue")
+col1.metric("Total Respondents", len(df))
+col2.metric("Unique Legal Issues", df["LegalIssue"].nunique())
+col3.metric("Average Budget", round(df["ConsultBudget"].mean(),2))
 
-st.plotly_chart(fig1)
+st.markdown("---")
 
-st.subheader("Age Group Distribution")
+# Legal Issue Distribution
+fig = px.pie(df, names="LegalIssue",
+             title="Distribution of Legal Issues")
 
-fig2 = px.pie(df, names="AgeGroup")
+st.plotly_chart(fig)
 
-st.plotly_chart(fig2)
+st.info("""
+Insight:
 
-st.subheader("Consultation Budget Distribution")
+• Civil and family legal issues dominate demand.  
+• These categories should be prioritized when onboarding lawyers to the platform.
+""")
 
-fig3 = px.histogram(df, x="ConsultBudget")
+st.markdown("---")
 
-st.plotly_chart(fig3)
+# Budget Distribution
+fig = px.histogram(df, x="ConsultBudget",
+                   nbins=30,
+                   title="Legal Consultation Budget Distribution")
+
+st.plotly_chart(fig)
+
+st.info("""
+Insight:
+
+• Most users have moderate legal consultation budgets.  
+• Affordable online consultations may attract the majority of users.
+""")
+
+st.markdown("---")
+
+# Urgency Analysis
+fig = px.box(df, y="UrgencyScore",
+             title="Urgency Level of Legal Problems")
+
+st.plotly_chart(fig)
+
+st.info("""
+Insight:
+
+• Many legal cases have high urgency scores.  
+• Real-time lawyer matching could improve response speed.
+""")
+
+st.success("Key Takeaway: Mongolia shows strong demand for quick and affordable legal consultation services.")
