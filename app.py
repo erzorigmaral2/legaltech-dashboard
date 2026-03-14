@@ -1,23 +1,15 @@
 import streamlit as st
 
-# Page configuration
 st.set_page_config(
     page_title="Legal Advisor App – Mongolia",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Sidebar content
 st.sidebar.title("LegalTech Analytics Dashboard")
 
-st.sidebar.markdown("""
-### Navigation
-
-Use the menu below to explore analytics modules.
-""")
-
 st.sidebar.info("""
-Modules Available
+Navigation
 
 • Descriptive Analytics  
 • Diagnostic Analytics  
@@ -25,7 +17,6 @@ Modules Available
 • Prescriptive Analytics
 """)
 
-# Main page content
 st.title("Legal Advisor App – Mongolia")
 
 st.header("Objective")
@@ -35,22 +26,23 @@ Monitor and optimize the conversion of users seeking legal help into paying lega
 while ensuring lawyer availability and service quality.
 """)
 
-st.write("Use the sidebar to navigate through analytics modules.")
-
 st.markdown("---")
 
-st.subheader("Dashboard Modules")
+st.subheader("Analytics Modules")
 
 st.markdown("""
-• **Descriptive Analytics** — Understand user demographics and legal needs  
+**Descriptive Analytics**
+- Understand user demographics
+- Analyze legal service demand
 
-• **Diagnostic Analytics** — Identify challenges users face when finding lawyers  
+**Diagnostic Analytics**
+- Identify barriers to finding lawyers
 
-• **Predictive Analytics** — Predict which users are likely to pay for consultations  
+**Predictive Analytics**
+- Predict likelihood of users paying for consultations
 
-• **Prescriptive Analytics** — Generate recommendations using association rule mining  
+**Prescriptive Analytics**
+- Generate strategic recommendations
 """)
 
-st.markdown("---")
-
-st.success("Use the sidebar on the left to explore the analytics dashboard.")
+st.success("Use the sidebar to explore analytics pages.")
