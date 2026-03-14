@@ -1,39 +1,30 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
 
-df = pd.read_csv("data/mongolia_legal_survey_synthetic_2000.csv")
+df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
 st.title("Descriptive Analytics")
 
 st.subheader("Legal Issue Distribution")
 
-fig = plt.figure()
+fig = px.bar(
+    df["LegalIssue"].value_counts().reset_index(),
+    x="index",
+    y="LegalIssue",
+    labels={"index":"Legal Issue","LegalIssue":"Count"}
+)
 
-df["LegalIssue"].value_counts().plot(kind="bar")
+st.plotly_chart(fig)
 
-plt.xlabel("Legal Issue")
-plt.ylabel("Respondents")
+st.subheader("User Demographics")
 
-st.pyplot(fig)
+fig2 = px.pie(df, names="AgeGroup")
 
+st.plotly_chart(fig2)
 
-st.subheader("Age Distribution")
+st.subheader("Consultation Budget Distribution")
 
-fig = plt.figure()
+fig3 = px.histogram(df, x="ConsultBudget")
 
-df["AgeGroup"].value_counts().plot(kind="bar")
-
-plt.xlabel("Age Group")
-plt.ylabel("Respondents")
-
-st.pyplot(fig)
-
-
-st.subheader("Consultation Preference")
-
-fig = plt.figure()
-
-df["PreferredConsultation"].value_counts().plot(kind="bar")
-
-st.pyplot(fig)
+st.plotly_chart(fig3)
