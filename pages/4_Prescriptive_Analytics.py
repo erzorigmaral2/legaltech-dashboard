@@ -5,104 +5,44 @@ from mlxtend.frequent_patterns import apriori, association_rules
 
 st.title("Prescriptive Analytics")
 
-# -------------------------
-# Load Dataset
-# -------------------------
-
 df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
-st.subheader("Dataset Preview")
-st.dataframe(df.head())
+# Select categorical columns
+cat_cols = df.select_dtypes(include="object").columns
 
-# -------------------------
-# Select usable columns
-# -------------------------
+data = pd.get_dummies(df[cat_cols])
 
-candidate_columns = []
+frequent = apriori(data, min_support=0.02, use_colnames=True)
 
-for col in df.columns:
-    if df[col].dtype == "object":
-        candidate_columns.append(col)
-
-if len(candidate_columns) < 2:
-    st.error("Dataset does not contain enough categorical columns.")
-    st.stop()
-
-data = df[candidate_columns]
-
-# -------------------------
-# One-hot encode
-# -------------------------
-
-basket = pd.get_dummies(data)
-
-st.write("Encoded feature count:", basket.shape[1])
-
-# -------------------------
-# Apriori
-# -------------------------
-
-frequent_itemsets = apriori(
-    basket,
-    min_support=0.02,   # lowered threshold
-    use_colnames=True
-)
-
-if frequent_itemsets.empty:
-    st.warning("No frequent itemsets found.")
-    st.stop()
-
-# -------------------------
-# Association Rules
-# -------------------------
-
-rules = association_rules(
-    frequent_itemsets,
-    metric="confidence",
-    min_threshold=0.3
-)
+rules = association_rules(frequent,
+                          metric="confidence",
+                          min_threshold=0.3)
 
 if rules.empty:
 
-    # fallback using lift
-    rules = association_rules(
-        frequent_itemsets,
-        metric="lift",
-        min_threshold=1
-    )
+    st.warning("No strong rules found with confidence threshold, showing lift-based rules.")
 
-if rules.empty:
-    st.warning("No association rules discovered.")
-    st.stop()
+    rules = association_rules(frequent,
+                              metric="lift",
+                              min_threshold=1)
 
-# -------------------------
-# Clean rule display
-# -------------------------
-
-rules["antecedents"] = rules["antecedents"].astype(str)
-rules["consequents"] = rules["consequents"].astype(str)
-
-rules = rules.sort_values(by="lift", ascending=False)
+rules = rules.sort_values("lift", ascending=False)
 
 st.subheader("Top Association Rules")
 
-st.dataframe(
-    rules[
-        [
-            "antecedents",
-            "consequents",
-            "support",
-            "confidence",
-            "lift"
-        ]
-    ].head(20)
-)
+st.dataframe(rules[[
+    "antecedents",
+    "consequents",
+    "support",
+    "confidence",
+    "lift"
+]].head(20))
 
-# -------------------------
-# Visualization
-# -------------------------
+st.markdown("---")
 
-st.subheader("Rule Strength Visualization")
+# Rule visualization
+rules["antecedents"] = rules["antecedents"].astype(str)
+rules["consequents"] = rules["consequents"].astype(str)
 
 fig = px.scatter(
     rules,
@@ -116,18 +56,30 @@ fig = px.scatter(
 
 st.plotly_chart(fig)
 
-# -------------------------
-# Prescriptive Insights
-# -------------------------
+st.info("""
+Insight:
 
-st.subheader("Platform Recommendations")
+• Certain legal problems frequently occur with difficulty finding lawyers.  
+• Automated lawyer recommendation systems could improve user experience.
+""")
 
-top_rules = rules.head(5)
+st.markdown("---")
 
-for i,row in top_rules.iterrows():
+# Top rule visualization
+fig = px.bar(
+    rules.head(10),
+    x="lift",
+    y="antecedents",
+    title="Top Legal Service Associations"
+)
 
-    st.write(
-        f"If users experience **{row['antecedents']}**, "
-        f"they are likely to need **{row['consequents']}** "
-        f"(confidence {round(row['confidence'],2)}, lift {round(row['lift'],2)})."
-    )
+st.plotly_chart(fig)
+
+st.info("""
+Insight:
+
+• Strong associations indicate predictable legal service patterns.  
+• The platform can recommend lawyers based on the user's legal issue.
+""")
+
+st.success("Key Takeaway: Data-driven lawyer recommendations can significantly improve legal service accessibility.")
