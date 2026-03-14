@@ -13,7 +13,7 @@ from sklearn.linear_model import LogisticRegression
 st.title("Predictive Analytics – Legal App Conversion Prediction")
 
 # -----------------------------
-# Load dataset
+# Load Dataset
 # -----------------------------
 
 df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
@@ -22,13 +22,12 @@ st.subheader("Dataset Preview")
 st.dataframe(df.head())
 
 # -----------------------------
-# Detect target column
+# Detect Target Column
 # -----------------------------
 
 possible_targets = ["AppInterest","UseLegalApp","WillUseApp"]
 
 target = None
-
 for col in possible_targets:
     if col in df.columns:
         target = col
@@ -36,13 +35,13 @@ for col in possible_targets:
 
 if target is None:
     st.error("Target column not found in dataset.")
-    st.write("Available columns:", df.columns.tolist())
+    st.write("Columns available:", df.columns.tolist())
     st.stop()
 
-st.write("Target column used:", target)
+st.write("Target column:", target)
 
 # -----------------------------
-# Convert target to binary
+# Convert Target
 # -----------------------------
 
 df[target] = df[target].map({
@@ -52,53 +51,49 @@ df[target] = df[target].map({
 })
 
 # -----------------------------
-# Convert numeric columns
+# Convert All Columns Safely
 # -----------------------------
 
-numeric_cols = ["ConsultBudget","UrgencyScore"]
+for col in df.columns:
 
-for col in numeric_cols:
-    if col in df.columns:
-        df[col] = pd.to_numeric(df[col], errors="coerce")
+    if df[col].dtype == "object":
+
+        try:
+            df[col] = pd.to_numeric(df[col])
+        except:
+            encoder = LabelEncoder()
+            df[col] = encoder.fit_transform(df[col].astype(str))
 
 # -----------------------------
-# Remove infinite values
+# Replace Infinite Values
 # -----------------------------
 
 df.replace([np.inf,-np.inf],np.nan,inplace=True)
 
 # -----------------------------
-# Fill missing values
+# Fill Missing Values
 # -----------------------------
 
-for col in df.columns:
-    if df[col].dtype in ["float64","int64"]:
-        df[col].fillna(df[col].median(),inplace=True)
-    else:
-        df[col].fillna(df[col].mode()[0],inplace=True)
+df.fillna(df.median(numeric_only=True),inplace=True)
 
 # -----------------------------
-# Encode categorical features
+# Final Safety Cleaning
 # -----------------------------
 
-encoder = LabelEncoder()
-
-for col in df.select_dtypes(include="object").columns:
-    df[col] = encoder.fit_transform(df[col])
+df = df.dropna()
 
 # -----------------------------
-# Features and target
+# Split Features / Target
 # -----------------------------
 
 X = df.drop(columns=[target])
 y = df[target]
 
-# Final safety cleaning
-X.replace([np.inf,-np.inf],np.nan,inplace=True)
-X.fillna(X.median(),inplace=True)
+# Ensure numeric matrix
+X = X.astype(float)
 
 # -----------------------------
-# Train test split
+# Train/Test Split
 # -----------------------------
 
 X_train,X_test,y_train,y_test = train_test_split(
@@ -106,7 +101,7 @@ X_train,X_test,y_train,y_test = train_test_split(
 )
 
 # -----------------------------
-# Train ML models
+# Train Models
 # -----------------------------
 
 rf = RandomForestClassifier(n_estimators=200,random_state=42)
@@ -118,7 +113,7 @@ gb.fit(X_train,y_train)
 lr.fit(X_train,y_train)
 
 # -----------------------------
-# Accuracy comparison
+# Accuracy Comparison
 # -----------------------------
 
 rf_acc = accuracy_score(y_test,rf.predict(X_test))
@@ -141,13 +136,8 @@ fig = px.bar(
 
 st.plotly_chart(fig,use_container_width=True)
 
-st.info("""
-Tree-based models such as Random Forest and Gradient Boosting often perform
-better for behavioral prediction tasks like legal service adoption.
-""")
-
 # -----------------------------
-# Feature importance
+# Feature Importance
 # -----------------------------
 
 importance = pd.DataFrame({
@@ -167,7 +157,7 @@ fig2 = px.bar(
 st.plotly_chart(fig2,use_container_width=True)
 
 # -----------------------------
-# Conversion probability
+# Conversion Probability
 # -----------------------------
 
 st.subheader("Sample Conversion Probability")
@@ -179,6 +169,5 @@ prob = rf.predict_proba(sample)[0][1]
 st.metric("Predicted Conversion Probability",str(round(prob*100,2))+"%")
 
 st.success("""
-Users with high predicted probability should receive targeted legal consultation
-offers and lawyer recommendations to maximize conversion.
+Users with high predicted probability should receive targeted legal consultation offers.
 """)
