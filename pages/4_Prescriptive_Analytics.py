@@ -1,41 +1,35 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 
-st.title("Prescriptive Analytics")
+st.title("AI Lawyer Recommendation Engine")
 
 df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 
-df["ConsultBudget"] = pd.to_numeric(df["ConsultBudget"],errors="coerce")
-df["UrgencyScore"] = pd.to_numeric(df["UrgencyScore"],errors="coerce")
-
-df.fillna(df.median(numeric_only=True),inplace=True)
-
-def recommendation(row):
-
-    if row["ConsultBudget"] > 200 and row["UrgencyScore"] > 4:
-        return "Premium Lawyer"
-
-    elif row["UrgencyScore"] > 4:
-        return "Fast Online Consultation"
-
-    else:
-        return "Standard Legal Advice"
-
-df["Recommendation"] = df.apply(recommendation,axis=1)
-
-fig = px.histogram(
-    df,
-    x="Recommendation",
-    title="Recommended Legal Services"
+issue = st.selectbox(
+    "Select Legal Issue",
+    df["LegalIssue"].unique()
 )
 
-st.plotly_chart(fig,use_container_width=True)
+budget = st.slider(
+    "Consultation Budget",
+    50,1000,200
+)
+
+lawyers = {
+"Family":["Bat-Erdene Law Firm","UB Family Legal"],
+"Business":["Mongol Legal Partners","Steppe Corporate Law"],
+"Criminal":["Justice Advocates","UB Criminal Defense"],
+"Property":["Land Rights Law Group"]
+}
+
+rec = lawyers.get(issue,["General Legal Advisor"])
+
+st.subheader("Recommended Lawyers")
+
+for r in rec:
+    st.write(f"⚖️ {r}")
 
 st.info("""
-Strategy Recommendation
-
-• Premium legal services for high budget urgent users  
-• Fast online consultations for urgent issues  
-• Standard advice packages for low urgency cases
+Recommendation is based on legal issue type and consultation budget.
+Premium budgets unlock access to specialized legal experts.
 """)
