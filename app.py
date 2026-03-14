@@ -1,12 +1,11 @@
 import streamlit as st
 
 st.set_page_config(
-    page_title="LegalTech Analytics",
+    page_title="LegalTech Analytics Dashboard",
     page_icon="⚖️",
     layout="wide"
 )
 
-# Load CSS
 def load_css():
     with open("styles.css") as f:
         st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
@@ -16,16 +15,16 @@ load_css()
 st.title("⚖️ Mongolia LegalTech Analytics Platform")
 
 st.markdown("""
-### AI-Powered Legal Services Intelligence Dashboard
+This dashboard analyzes **legal service demand in Mongolia**.
 
-This dashboard analyzes:
+Analytics modules:
 
-• Legal demand trends  
-• Customer behavior  
-• Lawyer marketplace supply  
-• Conversion into paid legal consultations  
+• Descriptive Analytics  
+• Diagnostic Analytics  
+• Predictive Analytics  
+• Prescriptive Analytics
 
-Use the sidebar to explore analytics modules.
+Use the sidebar to navigate.
 """)
 
-st.success("Select an analytics module from the sidebar.")
+st.success("Select a page from the sidebar.")
