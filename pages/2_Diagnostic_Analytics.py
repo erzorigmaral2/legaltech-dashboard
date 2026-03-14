@@ -14,16 +14,20 @@ df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
 # DATA CLEANING
 # -----------------------------
 
-# Convert numeric safely
+# Convert required columns to numeric
 df["ConsultBudget"] = pd.to_numeric(df["ConsultBudget"], errors="coerce")
 df["UrgencyScore"] = pd.to_numeric(df["UrgencyScore"], errors="coerce")
 
-# Replace inf values
+# Replace infinite values
 df.replace([np.inf, -np.inf], np.nan, inplace=True)
 
-# Fill missing values instead of dropping rows
-df["ConsultBudget"].fillna(df["ConsultBudget"].median(), inplace=True)
-df["UrgencyScore"].fillna(df["UrgencyScore"].median(), inplace=True)
+# Fill missing numeric values
+df["ConsultBudget"] = df["ConsultBudget"].fillna(df["ConsultBudget"].median())
+df["UrgencyScore"] = df["UrgencyScore"].fillna(df["UrgencyScore"].median())
+
+# Ensure numeric type
+df["ConsultBudget"] = df["ConsultBudget"].astype(float)
+df["UrgencyScore"] = df["UrgencyScore"].astype(float)
 
 # -----------------------------
 # BUDGET VS URGENCY ANALYSIS
@@ -42,8 +46,8 @@ fig = px.scatter(
 st.plotly_chart(fig, use_container_width=True)
 
 st.info("""
-Higher urgency legal problems tend to involve larger consultation budgets.
-Users are willing to pay more for urgent legal assistance.
+Users with urgent legal problems typically have higher consultation budgets.
+This suggests demand for fast-response legal services.
 """)
 
 # -----------------------------
@@ -52,12 +56,22 @@ Users are willing to pay more for urgent legal assistance.
 
 st.subheader("Customer Segmentation")
 
-features = df[["ConsultBudget", "UrgencyScore"]]
+# Build feature matrix
+features = df[["ConsultBudget", "UrgencyScore"]].copy()
+
+# Final safety cleaning
+features = features.replace([np.inf, -np.inf], np.nan)
+features = features.fillna(features.median())
+
+# Convert to numpy
+X = features.values
 
 # Run clustering
 kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
 
-df["Segment"] = kmeans.fit_predict(features)
+segments = kmeans.fit_predict(X)
+
+df["Segment"] = segments
 
 fig2 = px.scatter(
     df,
@@ -71,6 +85,6 @@ st.plotly_chart(fig2, use_container_width=True)
 
 st.info("""
 Segment 0 – Budget-sensitive users  
-Segment 1 – Urgent legal cases  
-Segment 2 – Premium legal clients
+Segment 1 – Urgent legal clients  
+Segment 2 – Premium consultation users
 """)
