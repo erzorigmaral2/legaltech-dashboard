@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
-
 st.title("Diagnostic Analytics")
 
-st.subheader("Main Difficulties in Finding Lawyers")
+df = pd.read_csv("data/mongolia_legal_survey_synthetic_dataset_2000.csv")
+
+st.subheader("Main Difficulties Finding Lawyers")
 
 difficulty = df["MainDifficulty"].value_counts().reset_index()
 difficulty.columns = ["Difficulty","Count"]
